@@ -8,17 +8,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    # Step 1: Check out the repository
     - name: Check out the repository
       uses: actions/checkout@v2
 
-    # Step 2: Download and install Playit
     - name: Download and Install Playit
       run: |
         Invoke-WebRequest -Uri "https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-windows-x86_64-signed.exe" -OutFile "$env:USERPROFILE\playit.exe"
         Start-Sleep -Seconds 5
 
-    # Step 3: Enable Remote Desktop features and configure user
     - name: Enable Remote Desktop
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
@@ -26,22 +23,30 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
         Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "p@ssw0rd!" -Force)
 
-    # Step 4: Start Playit and set up RDP tunnel
-    - name: Start Playit and Set Up RDP Tunnel
+    - name: Show Public IP (RDP IP)
+      run: |
+        $publicIp = (Invoke-RestMethod -Uri "https://api.ipify.org?format=json").ip
+        Write-Output "`n==== RDP Public IP ===="
+        Write-Output "RDP IP: $publicIp:3389"
+
+    - name: Start Playit and Show RDP Tunnel Info
       env:
         PLAYIT_AUTH_KEY: ${{ secrets.PL }}
       run: |
-        Start-Process -FilePath "$env:USERPROFILE\playit.exe" -ArgumentList "--secret $env:PLAYIT_AUTH_KEY" -NoNewWindow -Wait
+        cd $env:USERPROFILE
+        echo "[[tunnels]]`nlocal_port = 3389`nproto = \"tcp\"" | Out-File -Encoding ascii playit.toml
+        $output = .\playit.exe --config playit.toml --secret $env:PLAYIT_AUTH_KEY | Tee-Object -Variable output
+        Write-Output "`n==== RDP Tunnel (Playit) ===="
+        $rdpUrl = ($output | Select-String -Pattern "Tunnel is live at").Line
+        Write-Output $rdpUrl
 
-    # Step 5: Keep the GitHub Action Runner Alive
     - name: Keep the GitHub Action Runner Alive
       run: |
         while ($true) {
           Write-Output "Session is alive - $(Get-Date)"
           Start-Sleep -Seconds 300
         }
-        
-    # Step 6: Trigger the workflow again
+
     - name: Trigger New Workflow Run
       if: always()
       env:

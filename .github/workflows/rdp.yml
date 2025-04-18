@@ -28,6 +28,12 @@ jobs:
         git clone https://github.com/Tajbir23/whatsapp-bot.git
         cd whatsapp-bot
         npm install
+
+    # Step 7: Start Node.js Server and whatsapp bot client in New PowerShell Window
+    - name: Start Node.js Server and whatsapp bot client in New PowerShell Window
+      run: |
+        Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "cd whatsapp-bot; npm run preview"
+
         
     # Step 4: Download and install Playit
     - name: Download and Install Playit
@@ -50,10 +56,6 @@ jobs:
       run: |
         Start-Process -FilePath "$env:USERPROFILE\playit.exe" -ArgumentList "--secret $env:PLAYIT_AUTH_KEY" -NoNewWindow -Wait
         
-    # Step 7: Start Node.js Server and whatsapp bot client in New PowerShell Window
-    - name: Start Node.js Server and whatsapp bot client in New PowerShell Window
-      run: |
-        Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "cd whatsapp-bot; npm run preview"
         
     # Step 8: Keep the GitHub Action Runner Alive
     - name: Keep the GitHub Action Runner Alive
